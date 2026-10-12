@@ -13,7 +13,7 @@ short_description: Grounded RAG over Zidipay's internal policy corpus.
 
 A Retrieval-Augmented Generation (RAG) web app that answers questions about the policies and procedures of **Zidipay Financial Technologies**, a fictional East-African digital payments company. The corpus is 100% synthetic but internally consistent. Every answer is grounded in the corpus and shipped with inline `[n]` citations linked to the source document and section.
 
-Stack: **Python 3.11 · Flask · LangChain · Groq `llama-3.3-70b-versatile` · HuggingFace `BAAI/bge-small-en-v1.5` embeddings · Chroma · Docker (Hugging Face Spaces)**.
+Stack: **Python 3.11 · Flask · LangChain · Groq `qwen/qwen3.8-27b` · HuggingFace `BAAI/bge-small-en-v1.5` embeddings · Chroma · Docker (Hugging Face Spaces)**.
 
 The corpus is **14 documents, 126 chunks** after ingestion: 9 Markdown, 2 HTML, 2 PDF, 1 plain text. Topics covered: Employee Handbook, PTO & Leave, Remote/Hybrid Work, Information Security, Acceptable Use & Device Policy, Data Protection & Privacy, Expense & Reimbursement, Travel, AML/KYC, Anti-Bribery & Code of Conduct, Performance Review & Promotion, Onboarding & Offboarding, Incident Response & Business Continuity, Public Holidays & Working Hours.
 
@@ -31,7 +31,7 @@ flowchart LR
     H -- no --> R[refusal]
     H -- yes --> I[optional rerank<br/>ms-marco-MiniLM-L-6-v2]
     I --> J[prompt builder<br/>numbered context blocks]
-    J --> K[ChatGroq<br/>llama-3.3-70b-versatile<br/>temperature=0]
+    J --> K[ChatGroq<br/>qwen/qwen3.8-27b<br/>temperature=0]
     K --> L[citation parser<br/>extract n markers]
     L --> M[Flask API + UI<br/>/ · /chat · /health · /source]
 ```
@@ -42,7 +42,7 @@ The pipeline is imperative (`rag/pipeline.py`) — retrieve → format → call 
 
 - `GET /` — chat UI with suggestion buttons. The page renders the answer text and a citations panel; `[n]` markers in the answer are visually linked to the citation cards.
 - `POST /chat` with JSON `{"question": "..."}` → `{"answer", "citations": [{doc_id, doc_title, section, source, snippet}], "latency_ms", "refused"}`. Snippets are capped at 320 characters.
-- `GET /health` → `{"status": "ok", "model": "llama-3.3-70b-versatile", "index_chunks": 126}`.
+- `GET /health` → `{"status": "ok", "model": "qwen/qwen3.8-27b", "index_chunks": 126}`.
 - `GET /source/<doc_id>` — serves the raw corpus document with the correct MIME type so citation links open the original file.
 
 ## Guardrails
@@ -89,7 +89,7 @@ Open `http://localhost:5000` and ask e.g. *"How many days of annual leave do I g
 python eval/run_eval.py                    # writes eval/results/summary.md + eval_results.json
 python eval/run_eval.py --limit 3          # quick smoke (3 in-corpus + 1 out-of-corpus)
 python eval/run_eval.py --ablate           # ablation sweep → eval/results/ablations.md
-python eval/run_eval.py --model llama-3.1-8b-instant
+python eval/run_eval.py --model openai/gpt-oss-20b
 ```
 
 Output files:
@@ -128,7 +128,7 @@ The test suite uses a tiny in-memory fixture corpus and a stubbed Groq call, so 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `GROQ_API_KEY` | *(required at runtime)* | Groq API key for the LLM. |
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Primary model. Fallback: `llama-3.1-8b-instant`. |
+| `GROQ_MODEL` | `qwen/qwen3.8-27b` | Primary model. Fallback: `openai/gpt-oss-20b`. |
 | `EMBEDDING_MODEL` | `BAAI/bge-small-en-v1.5` | HuggingFace embeddings (local). |
 | `RERANKER_MODEL` | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Cross-encoder when `USE_RERANKER=true`. |
 | `USE_RERANKER` | `false` | Toggle the cross-encoder re-ranker. Disabled in the deployed instance. |
@@ -155,4 +155,4 @@ CI/CD is split across `.github/workflows/ci.yml` and `.github/workflows/cd.yml`.
 
 - Zidipay is fictional. All policy contents, figures, contacts, and document IDs are invented but internally consistent.
 - The cross-encoder reranker is off by default (CPU-only deployments). Turning it on adds noticeable per-query latency on the deployed tier.
-- The Groq free tier is rate-limited; the eval harness sleeps between calls. If you hit the cap, switch `GROQ_MODEL` to `llama-3.1-8b-instant` or pass `--model llama-3.1-8b-instant` to the eval.
+- The Groq free tier is rate-limited; the eval harness sleeps between calls. If you hit the cap, switch `GROQ_MODEL` to `openai/gpt-oss-20b` or pass `--model openai/gpt-oss-20b` to the eval.

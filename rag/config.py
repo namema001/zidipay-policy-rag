@@ -32,7 +32,7 @@ def _float(value: str | None, default: float) -> float:
 
 
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL: str = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
 RERANKER_MODEL: str = os.getenv(
     "RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"
